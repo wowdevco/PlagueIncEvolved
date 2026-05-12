@@ -63,12 +63,12 @@
 
     <script>
       const baseBuild = "Build/";
-      const base = "#";
+      // Fix: Use the current origin and pathname to ensure the base is the site root
+      const base = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
 
       const MAX_RETRIES = 3;
       const RETRY_DELAY_MS = 1000;
 
-      // Per-part progress tracking
       const partProgress = new Map();
       const totalGuess = 317 * 1024 * 1024;
 
@@ -91,7 +91,6 @@
             const res = await fetch(url);
             if (!res.ok) throw new Error("HTTP " + res.status + " for " + url);
 
-            // Reset this part's progress on retry
             if (attempt > 0) {
               partProgress.set(url, 0);
               updateUI();
@@ -143,8 +142,6 @@
 
       async function loadFile(file) {
         const urls = buildUrls(file);
-
-        // All parts fetched in parallel with per-part retry and streaming progress
         const buffers = await Promise.all(urls.map((url) => fetchPartWithRetry(url)));
 
         let size = 0;
@@ -161,7 +158,6 @@
       }
 
       async function start() {
-        // wasm and data files loaded fully in parallel
         const [wasm, data] = await Promise.all([loadFile(files[0]), loadFile(files[1])]);
 
         const wasmUrl = URL.createObjectURL(new Blob([wasm], { type: "application/wasm" }));
